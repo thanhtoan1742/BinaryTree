@@ -18,4 +18,5 @@ int main() {
         std::cout << e << ' ';
     });
     std::cout << '\n';
+    
 }
