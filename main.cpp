@@ -1,23 +1,20 @@
 #include "BSTree.hpp"
+#include "AVLTRee.hpp"
+#include <vector>
 
 #include <iostream>
 
-// TODO: add unittest.
 int main() {
-    BSTree<int> bst;
+    AVLTRee<int> avl;
+    vector<int> items = {21, 23, 3, 14, 5};
 
-    int n = 15;
-    for (int i = 0; i < n; ++i) {
-        int val = rand()%100;
-        
-        std::cout << val << ' ';
-        bst.add(val);
-    }
-    std::cout << '\n';
-
-    bst.inorderTraverse([](int& e) {
-        std::cout << e << ' ';
+    for (auto e: items)
+        avl.insert(e);
+    
+    avl.inorderTraverse([](const int& e) {
+        cout << e << ' ';
     });
-    std::cout << '\n';
+    cout << '\n';
 
+    cout << "Accepted, no error\n";
 }
