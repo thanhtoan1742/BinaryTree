@@ -1,10 +1,13 @@
+#ifndef AVL_TREE
+#define AVL_TREE
+
 #include <algorithm>
 #include <functional>
 
 using namespace std;
 
 template <class K, class V>
-class AVLTree {
+class avl_tree {
 public:
     class Node {
     protected:
@@ -39,7 +42,7 @@ public:
             return right_height() - left_height();
         }
 
-        friend class AVLTree;
+        friend class avl_tree;
     };
 
 protected:
@@ -93,7 +96,6 @@ protected:
         op(root->key, root->value);
         inorder_traverse(root->right, op);
     }   
-
 
     void rotate_left(Node*& root) {
         auto p = root->right;
@@ -211,7 +213,7 @@ protected:
     }
 
 public:
-    AVLTree()
+    avl_tree()
     : root(nullptr), nE(0) {
     }
 
@@ -268,3 +270,5 @@ public:
         root = nullptr;
     }
 };
+
+#endif // AVL_TREE

@@ -1,10 +1,13 @@
+#ifndef HCMUT_SPLAY_TREE
+#define HCMUT_SPLAY_TREE
+
 #include <algorithm>
 #include <functional>
 
 using namespace std;
 
 template <class K, class V>
-class SplayTree {
+class splay_tree {
 public:
     class Node {
     protected:
@@ -17,7 +20,7 @@ public:
 
     private:
         Node(K _key, V _value, Node* _parent = nullptr, Node* _left = nullptr, Node* _right = nullptr)
-        : left(_left), parent(_parent), right(_right), key(_key), value(_value) {
+        : parent(_parent), left(_left), right(_right), key(_key), value(_value) {
         }
 
     protected:
@@ -28,7 +31,7 @@ public:
                 right->parent = this;
         }
 
-        friend class SplayTree;
+        friend class splay_tree;
     };
 
 protected:
@@ -60,24 +63,18 @@ protected:
 
     void splay(Node*& child) {
         Node* parent = child->parent;
-        if (!parent->parent) {
-            if (child == parent->left)
-                rotate_right(parent);
-            else
-                rotate_left(parent);
-        }
-        else {
+        if (parent->parent) {
             Node* grand = parent->parent;
             if (parent == grand->left)
                 rotate_right(grand);
             else 
                 rotate_left(grand);
-
-            if (child == parent->left)
-                rotate_right(parent);
-            else
-                rotate_left(parent);
         }
+
+        if (child == parent->left)
+            rotate_right(parent);
+        else
+            rotate_left(parent);
     }
 
     Node* find(Node* root, const K& key) {
@@ -92,6 +89,12 @@ protected:
         else
             return find(root->right, key);
 
+    }
+
+    Node* get_right_most(Node* root) {
+        while (root->right)
+            root = root->right;
+        return root;
     }
 
     void inorder_traverse(Node* root, function<void(const K&, V&)> op) {
@@ -116,7 +119,6 @@ protected:
             p = add(root->right, key, value);
 
         root->update();
-        root->nE++;
         return p;
     }
 
@@ -130,7 +132,7 @@ protected:
     }
 
 public:
-    SplayTree()
+    splay_tree()
     : root(nullptr), nE(0) {
     }
 
@@ -162,7 +164,7 @@ public:
 
     void remove(const K& key) {
         Node* p = find(key);
-        if (p == nullptr)
+        if (!p)
             throw "not Found";
 
         while (p->parent)
@@ -171,9 +173,9 @@ public:
         Node* left = p->left;
         Node* right = p->right;
         if (left)
-            left->par = nullptr;
+            left->parent = nullptr;
         if (right)
-            right->par = nullptr;
+            right->parent = nullptr;
         delete p;
 
         if (!left)
@@ -196,3 +198,5 @@ public:
         root = nullptr;
     }
 };
+
+#endif // HCMUT_SPLAY_TREE
