@@ -1,310 +1,207 @@
-#include <iostream>
-#include <iomanip>
-#include <vector>
+#include <algorithm>
 #include <functional>
-#include <string>
-#include <queue>
-#include <sstream>
-#include <utility>
 
 using namespace std;
 
-template<typename T>
-class AVLTRee {
-    string SPACE;
-
+template <class K, class V>
+class AVLTree {
+public:
     class Node {
+    protected:
+        Node* left;
+        Node* right;
+        int bf;
+        int nE;
     public:
-        T data;
-        int bf; // balance factor
-        Node* pLeft;
-        Node* pRight;
+        const K key;
+        V value;
 
-        Node() {
+    private:
+        Node(K _key, V _value, Node* _left = nullptr, Node* _right = nullptr)
+        : left(_left), right(_right), bf(0), nE(1), key(_key), value(_value) {
         }
 
-        Node(T _data, int _bf = 0, Node* _left = nullptr, Node* _right = nullptr)
-        : data(_data), bf(_bf), pLeft(_left), pRight(_right) {
-        }
+        friend class AVLTree;
     };
 
-private:
-    Node* pRoot;
-    int nElements;
-    int height;
+protected:
+    Node* root;
+    int nE;
 
-    void rotateLeft(Node*& pRoot) {
-        auto p = pRoot->pRight;
-        pRoot->pRight = p->pLeft;
-        p->pLeft = pRoot;
-        pRoot = p;
+protected:
+    int order_of_key(Node* root, const K& key) {
+        if (!root)
+            return size();
+        
+        int cl = root->left ? root->left->nE : 0;
+        if (key == root->key)
+            return cl;
+        if (key < root->key)
+            return order_of_key(root->left, key);
+        else 
+            return cl + 1 + order_of_key(root->right, key);
     }
 
-    void rotateRight(Node*& pRoot) {
-        auto p = pRoot->pLeft;
-        pRoot->pLeft = p->pRight;
-        p->pRight = pRoot;
-        pRoot = p;
+    Node* find_by_order(Node* root, int order) {
+        int cl = root->left ? root->left->nE : 0;
+        if (order == cl)
+            return root;
+
+        if (order < cl)
+            return find_by_order(root->left, order);
+        else
+            return find_by_order(root->right, order - cl - 1);
     }
 
-    int balance(Node*& pRoot) {
-        if (pRoot->bf < -1 && pRoot->pLeft->bf == -1) {
-            rotateRight(pRoot);
-            pRoot->bf = 0;
-            pRoot->pRight->bf = 0;
-            return 0;
-        }
+    Node* find_by_key(Node* root, const K& key) {
+        if (!root)
+            return nullptr;
 
-        if (pRoot->bf < -1 && pRoot->pLeft->bf == 0) {
-            rotateRight(pRoot);
-            pRoot->bf = 1;
-            pRoot->pRight->bf = -1;
-            return 1;
-        }
+        if (key == root->key)
+            return root;
 
-        if (pRoot->bf < -1 && pRoot->pLeft->bf == 1) {
-            rotateLeft(pRoot->pLeft);
-            rotateRight(pRoot);
-            pRoot->pLeft->bf = !(pRoot->bf == 1);
-            pRoot->pRight->bf = -(pRoot->bf == -1);
-            pRoot->bf = 0;
-            return 0;
-        }
+        if (key < root->key)
+            return find_by_key(root->left, key);
+        else
+            return find_by_key(root->right, key);
 
-        if (pRoot->bf > 1 && pRoot->pRight->bf == 1) {
-            rotateLeft(pRoot);
-            pRoot->bf = 0;
-            pRoot->pLeft->bf = 0;
-            return 0;
-        }
-
-        if (pRoot->bf > 1 && pRoot->pRight->bf == 0) {
-            rotateLeft(pRoot);
-            pRoot->bf = -1;
-            pRoot->pLeft->bf = 1;
-            return 1;
-        }
-
-        if (pRoot->bf > 1 && pRoot->pRight->bf == -1) {
-            rotateRight(pRoot->pRight);
-            rotateLeft(pRoot);
-            pRoot->pLeft->bf = !(pRoot->bf == 1);
-            pRoot->pRight->bf = -(pRoot->bf == -1);
-            pRoot->bf = 0;
-            return 0;
-        }
-
-        return 0;
     }
 
-    int insert(Node*& pRoot, const T& data) {
-        if (!pRoot) {
-            pRoot = new Node(data);
-            return 1;
+    void inorder_traverse(Node* root, function<void(const K&, V&)> op) {
+        if (!root)
+            return;
+
+        inorder_traverse(root->left, op);
+        op(root->key, root->value);
+        inorder_traverse(root->right, op);
+    }   
+
+    Node* add(Node*& root, const K& key, const V& value) {
+        if (!root)  {
+            root = new Node(key, value);
+            return root;
         }
 
-        if (data < pRoot->data) {
-            pRoot->bf -= insert(pRoot->pLeft, data);
-            if (pRoot->bf < -1) 
-                return balance(pRoot);
-            return pRoot->bf == -1;
-        }
-        else {
-            pRoot->bf += insert(pRoot->pRight, data);
-            if (pRoot->bf > 1) 
-                return balance(pRoot);
-            return pRoot->bf == 1;
-        } 
+        Node* p = nullptr;
+        if (key < root->key)
+            p = add(root->left, key, value);
+        else
+            p = add(root->right, key, value);
 
-        return 0;
+        root->nE++;
+        return p;
     }
 
-    Node* inorderSuccessor(Node* pRoot) {
-        pRoot = pRoot->pLeft;
-        while (pRoot->pRight)
-            pRoot = pRoot->pRight;
-        return pRoot;
+    Node* get_inorder_successor(Node* root) {
+        root = root->left;
+        while (root->right)
+            root = root->right;
+        return root;
     }
-    
-    int remove(Node*& pRoot, const T& data) {
-        if (!pRoot) 
-            return 0;
 
-        if (data < pRoot->data) {
-            pRoot->bf += remove(pRoot->pLeft, data);
-            if (pRoot->bf > 2) {
-                int g = balance(pRoot);
-                return !g;
-            }
-            return 0; 
-        }
-
-        if (data > pRoot->data) {
-            remove(pRoot->pLeft, data);
-            if (pRoot->bf < -2) {
-                int g = balance(pRoot);
-                return !g;
+    void remove_by_key(Node*& root, const K& key) {
+        if (key == root->key) {
+            if (!root->left && !root->right) {
+                delete root;
+                root = nullptr;
+                return;
             }
 
-            return 0; 
-        }
+            if (root->left && !root->right) {
+                auto p = root;
+                root = p->left;
+                delete p;
+                return;
+            }
 
-        if (!pRoot->pLeft && !pRoot->pRight) {
-            delete pRoot;
-            pRoot = nullptr;
-            return 1;
-        }
+            if (!root->left && root->right) {
+                auto p = root;
+                root = p->right;
+                delete p;
+                return;
+            }
 
-        if (pRoot->pLeft && !pRoot->pRight) {
-            auto p = pRoot;
-            pRoot = p->pLeft;
+            Node* s = get_inorder_successor(root);
+            Node* p = root;
+            root = new Node(s->key, s->value, p->left, p->right);
+            root->nE = p->nE;
             delete p;
-            return 1;
-        }
-
-        if (!pRoot->pLeft && pRoot->pRight) {
-            auto p = pRoot;
-            pRoot = p->pRight;
-            delete p;
-            return 1;
-        }
-
-        auto p = inorderSuccessor(pRoot);
-        pRoot->data = p->data;
-        remove(pRoot->pLeft, data);
-        if (pRoot->bf < -2) {
-            int g = balance(pRoot);
-            return !g;
-        }
-        return 0; 
-    }
-
-    void preorderTraverse(Node* pRoot, function<void (T&)> op) {
-        if (!pRoot)
+            remove_by_key(root->left, key);
+            root->nE--;
             return;
-
-        preorderTraverse(pRoot->pLeft, op);
-        preorderTraverse(pRoot->pRight, op);
-        op(pRoot->data);
-    }
-
-    void inorderTraverse(Node* pRoot, function<void (T&)> op) {
-        if (!pRoot)
-            return;
-
-        inorderTraverse(pRoot->pLeft, op);
-        op(pRoot->data);
-        inorderTraverse(pRoot->pRight, op);
-    }
-
-    void postorderTraverse(Node* pRoot, function<void (T&)> op) {
-        if (!pRoot)
-            return;
-
-        postorderTraverse(pRoot->pLeft, op);
-        postorderTraverse(pRoot->pRight, op);
-        op(pRoot->data);
-    }
-    
-    string dataFormatOut(const T& data) {
-        stringstream ss;
-        ss << data;
-
-        stringstream res;
-        while (ss.str().size() < SPACE.size()) {
-            res << ' ';
-            ss << ' ';
         }
 
-        res << data;
-        return res.str();      
+        if (key < root->key)
+            remove_by_key(root->left, key);
+        else
+            remove_by_key(root->right, key);
+        root->nE--;
+    }
+
+    void clear(Node* root) {
+        if (!root)
+            return;
+        
+        clear(root->left);
+        clear(root->right);
+        delete root;
     }
 
 public:
-    AVLTRee() {
-        nElements = 0;
-        height = 0;
-        pRoot = nullptr;
-        SPACE = "   ";
+    AVLTree()
+    : root(nullptr), nE(0) {
+    }
+
+    int order_of_key(const K& key) {
+        return min(order_of_key(root, key), size());
+    }
+
+    Node* find_by_order(int order) {
+        if (order < 0 || order >= size())
+            throw "not in range";
+
+        return find_by_order(root, order);
+    }
+
+    Node* find_by_key(const K& key) {
+        return find_by_key(root, key);
+    }
+
+    int count(const K& key) {
+        return find_by_key(key) != nullptr;
     }
 
     int size() {
-        return nElements;
+        return nE;
     }
 
     bool empty() {
-        return nElements;
+        return !nE;
     }
 
-    void insert(const T& data) {
-        height += insert(pRoot, data);
-        ++nElements;
+    void inorder_traverse(function<void(const K&, V&)> op) {
+        inorder_traverse(root, op);
+    }   
+
+    Node* add(const K& key, const V& value) {
+        Node* p = add(root, key, value);
+        ++nE;
+        return p;
     }
 
-    void remove(const T& data) {
-        height -= remove(pRoot, data);
-        --nElements;
+    void remove_by_order(int order) {
+        Node* p = find_by_order(order);
+        remove_by_key(p->key);
     }
 
-    // void removeByIndex(int index) {
-
-    // }
-
-    void preorderTraverse(function<void (T&)> op) {
-        return preorderTraverse(pRoot, op);
+    void remove_by_key(const K& key) {
+        remove_by_key(root, key);
+        --nE;
     }
 
-    void inorderTraverse(function<void (T&)> op) {
-        return inorderTraverse(pRoot, op);
-    }
-
-    void postorderTraverse(function<void (T&)> op) {
-        return postorderTraverse(pRoot, op);
-    }
-
-    void log() {
-        cout << setw(SPACE.size());
-        cout << "size: " << nElements << '\n';        
-
-        queue<Node*>* cur = new queue<Node*>();
-        queue<Node*>* nex = new queue<Node*>();
-
-        cur->push(pRoot);
-        for (int h = height; h; --h) {
-            for (int i = 1; i < (1 << (h - 1)); ++i) 
-                cout << SPACE;
-
-            bool first = 1;
-            while (!cur->empty()) {
-                if (first) 
-                    first = 0;
-                else
-                    for (int i = 1; i < (1 << h); ++i) 
-                        cout << SPACE;
-
-                auto u = cur->front();
-                cur->pop();
-
-                if (u) {
-                    cout << dataFormatOut(u->data);
-                    nex->push(u->pLeft);
-                    nex->push(u->pRight);
-                }
-                else {
-                    cout << SPACE;      
-                    nex->push(nullptr);
-                    nex->push(nullptr);
-                }
-            }
-
-            for (int i = 1; i < (1 << (h - 1)); ++i) 
-                cout << SPACE;
-            cout << '\n';
-            swap(cur, nex);
-        }
-        
-        delete cur;
-        delete nex;
-        cout << "\n\n";
+    void clear() {
+        clear(root);
+        nE = 0;
+        root = nullptr;
     }
 };
