@@ -136,6 +136,10 @@ public:
     : root(nullptr), nE(0) {
     }
 
+    ~splay_tree() {
+        clear();
+    }
+
     Node* find(const K& key) {
         return find(root, key);
     }

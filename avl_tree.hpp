@@ -217,6 +217,10 @@ public:
     : root(nullptr), nE(0) {
     }
 
+    ~avl_tree() {
+        clear();
+    }
+
     int order_of_key(const K& key) {
         return min(order_of_key(root, key), size());
     }
