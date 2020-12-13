@@ -1,1 +1,0 @@
-For researching binary tree.
