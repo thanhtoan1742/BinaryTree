@@ -1,6 +1,7 @@
-#ifndef HCMUT_SPLAY_TREE
-#define HCMUT_SPLAY_TREE
+#ifndef SPLAY_TREE
+#define SPLAY_TREE
 
+#include <iostream>
 #include <algorithm>
 #include <functional>
 
@@ -45,8 +46,8 @@ protected:
         p->left = root;
         root = p;
 
-        root->parent = root->right->parent;
-        root->right->update();
+        root->parent = root->left->parent;
+        root->left->update();
         root->update();
     }
 
@@ -56,25 +57,58 @@ protected:
         p->right = root;
         root = p;
 
-        root->parent = root->left->parent;
-        root->left->update();
+        root->parent = root->right->parent;
+        root->right->update();
         root->update();
     }
 
-    void splay(Node*& child) {
-        Node* parent = child->parent;
-        if (parent->parent) {
-            Node* grand = parent->parent;
-            if (parent == grand->left)
-                rotate_right(grand);
-            else 
-                rotate_left(grand);
-        }
+    Node*& get_true_node(Node* p) {
+        if (!p->parent)
+            return root;
+        else 
+            if (p == p->parent->left)
+                return p->parent->left;
+            else
+                return p->parent->right;
+    }
 
-        if (child == parent->left)
-            rotate_right(parent);
-        else
-            rotate_left(parent);
+    void splay(Node*& p) {
+        if (p->parent->parent) {
+
+            if (p->parent == p->parent->parent->left && p == p->parent->left) {
+                Node*& root = get_true_node(p->parent->parent);
+                rotate_right(root);
+                rotate_right(root);
+                p = root;
+            }
+            else if (p->parent == p->parent->parent->right && p == p->parent->right) {
+                Node*& root = get_true_node(p->parent->parent);
+                rotate_left(root);
+                rotate_left(root);
+                p = root;
+            }
+            else if (p->parent == p->parent->parent->left && p == p->parent->right) {
+                rotate_left(get_true_node(p->parent));
+                Node*& root = get_true_node(p->parent);
+                rotate_right(root);
+                p = root;
+            }
+            else if (p->parent == p->parent->parent->right && p == p->parent->left) {
+                rotate_right(get_true_node(p->parent));
+                Node*& root = get_true_node(p->parent);
+                rotate_left(root);
+                p = root;
+            }
+        }
+        else {
+            Node*& root = get_true_node(p->parent);
+            if (p == root->left)
+                rotate_right(root);
+            else 
+                rotate_left(root);
+
+            p = root;
+        }
     }
 
     Node* find(Node* root, const K& key) {
@@ -141,7 +175,15 @@ public:
     }
 
     Node* find(const K& key) {
-        return find(root, key);
+        Node* p = find(root, key);
+        
+        if (!p)
+            return p;
+
+        while (p->parent)
+            splay(p);
+
+        return p;
     }
 
     int count(const K& key) {
@@ -162,6 +204,9 @@ public:
 
     Node* add(const K& key, const V& value) {
         Node* p = add(root, key, value);
+        while (p->parent)   
+            splay(p);
+    
         ++nE;
         return p;
     }
@@ -187,10 +232,14 @@ public:
         else if (!right)
             root = left;
         else {
+            root = left;
             left = get_right_most(left);
             while (left->parent)
                 splay(left);
+
             left->right = right;
+            right->parent = left;
+            root = left;
         }
 
         --nE;
@@ -201,6 +250,21 @@ public:
         nE = 0;
         root = nullptr;
     }
+
+    void print_tree(Node* root) {
+        if (!root)
+            return;
+
+        cout << (root->parent ? root->parent->key : -1) << ":" << root->key << " ";
+        print_tree(root->left);
+        print_tree(root->right);
+    }
+
+    void print_tree() {
+        cout << "\n---------------------------------SPLAY TREE-----------------------------------\n";
+        print_tree(root);
+        cout << "\n---------------------------------SPLAY TREE-----------------------------------\n";
+    }
 };
 
-#endif // HCMUT_SPLAY_TREE
+#endif // SPLAY_TREE
