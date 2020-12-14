@@ -146,6 +146,9 @@ protected:
             return root;
         }
 
+        if (key == root->key)
+            throw "duplicate key in add";
+
         Node* p = nullptr;
         if (key < root->key)
             p = add(root->left, key, value);
@@ -214,7 +217,7 @@ public:
     void remove(const K& key) {
         Node* p = find(key);
         if (!p)
-            throw "not Found";
+            throw "not found in remove";
 
         while (p->parent)
             splay(p);
