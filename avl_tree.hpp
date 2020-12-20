@@ -200,6 +200,9 @@ protected:
             remove_by_key(root->left, key);
         else
             remove_by_key(root->right, key);
+
+        root->update();
+        balance(root);
         root->nE--;
     }
 
